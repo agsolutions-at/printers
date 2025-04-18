@@ -1,0 +1,27 @@
+{
+  "name": "@agsolutions-at/printers-darwin-arm64",
+  "version": "0.0.0",
+  "author": "agsolutions GmbH",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/agsolutions-at/printers"
+  },
+  "keywords": [
+    "nodejs",
+    "napi-rs",
+    "rust"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "printers.darwin-arm64.node",
+  "files": [
+    "printers.darwin-arm64.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

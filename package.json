@@ -1,0 +1,50 @@
+{
+  "name": "@agsolutions-at/printers",
+  "version": "0.0.1",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "author": "agsolutions GmbH",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/agsolutions-at/printers"
+  },
+  "keywords": [
+    "nodejs",
+    "napi-rs",
+    "rust"
+  ],
+  "napi": {
+    "name": "printers",
+    "triples": {
+      "defaults": false,
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "i686-pc-windows-msvc",
+        "universal-apple-darwin"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4",
+    "ava": "^6.0.1"
+  },
+  "ava": {
+    "timeout": "3m"
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "ava",
+    "universal": "napi universal",
+    "version": "napi version"
+  },
+  "packageManager": "yarn@4.9.1"
+}

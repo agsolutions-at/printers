@@ -1,0 +1,27 @@
+{
+  "name": "@agsolutions-at/printers-win32-ia32-msvc",
+  "version": "0.0.0",
+  "author": "agsolutions GmbH",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/agsolutions-at/printers"
+  },
+  "keywords": [
+    "nodejs",
+    "napi-rs",
+    "rust"
+  ],
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "main": "printers.win32-ia32-msvc.node",
+  "files": [
+    "printers.win32-ia32-msvc.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

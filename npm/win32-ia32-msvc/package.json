@@ -22,6 +22,6 @@
     "printers.win32-ia32-msvc.node"
   ],
   "engines": {
-    "node": ">= 10"
+    "node": ">= 12.17.0"
   }
 }

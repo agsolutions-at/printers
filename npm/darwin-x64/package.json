@@ -22,6 +22,6 @@
     "printers.darwin-x64.node"
   ],
   "engines": {
-    "node": ">= 10"
+    "node": ">= 12.17.0"
   }
 }

@@ -310,6 +310,14 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { print } = nativeBinding
+const { PrinterState, PrinterJobState, getPrinters, getPrinterByName, getDefaultPrinter, print, printFile, getActiveJobs, getJobHistory } = nativeBinding
 
+module.exports.PrinterState = PrinterState
+module.exports.PrinterJobState = PrinterJobState
+module.exports.getPrinters = getPrinters
+module.exports.getPrinterByName = getPrinterByName
+module.exports.getDefaultPrinter = getDefaultPrinter
 module.exports.print = print
+module.exports.printFile = printFile
+module.exports.getActiveJobs = getActiveJobs
+module.exports.getJobHistory = getJobHistory

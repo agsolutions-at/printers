@@ -1,4 +1,4 @@
-# 🖨️ `@agsolutions-at/printers`
+# 🖨️ printers
 
 [![npm version](https://img.shields.io/npm/v/@agsolutions-at/printers.svg)](https://www.npmjs.com/package/@agsolutions-at/printers)
 [![npm downloads](https://img.shields.io/npm/dm/@agsolutions-at/printers.svg)](https://www.npmjs.com/package/@agsolutions-at/printers)
@@ -7,7 +7,7 @@
 [![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows-blue)](#)
 [![CI](https://github.com/agsolutions-at/printers/actions/workflows/CI.yml/badge.svg)](https://github.com/agsolutions-at/printers/actions/workflows/CI.yml)
 
-**`@agsolutions-at/printers`** is a high-performance, Rust-powered replacement for outdated native printer libraries in Node.js. Built on top of [
+**`printers`** is a high-performance, Rust-powered replacement for outdated native printer libraries in Node.js. Built on top of [
 `rust-printers`](https://github.com/talesluna/rust-printers), it provides seamless bindings via [`napi-rs`](https://napi.rs/), supporting fast and
 reliable printer interactions in Node.js and Electron applications.
 
@@ -20,6 +20,8 @@ reliable printer interactions in Node.js and Electron applications.
 - 🧩 **Electron-friendly** — includes prebuilt binaries, plug-and-play.
 - 🖥️ **Cross-platform aware** — currently supports **macOS** and **Windows**.
 - 💡 **Easy-to-use API** for interacting with system printers.
+- 📄 **Native PDF support on macOS** — uses CUPS with native PDF handling on UNIX systems; see [PDF Printing on Windows](#pdf-printing-on-windows).
+- 🧾 **Label printer compatible** — works with devices like Rollo and Zebra.
 
 > ℹ️ Want Linux support? PRs are welcome!
 
@@ -45,7 +47,7 @@ pnpm add @agsolutions-at/printers
 Here's a basic example to get up and running:
 
 ```ts
-import { getPrinters, print, getActiveJobs, getJobHistory } from '@agsolutions-at/printers';
+import {getPrinters, print, getActiveJobs, getJobHistory} from '@agsolutions-at/printers';
 
 const printers = getPrinters();
 console.log('Available printers:', printers);
@@ -68,7 +70,9 @@ This repo includes a command-line utility: [`printer-cli.mjs`](./printer-cli.mjs
 ```bash
 node printer-cli.mjs
 ```
+
 ### 💡 Features:
+
 - List available printers
 - Select and print text
 - Print a file
@@ -98,6 +102,51 @@ If you prefer to build locally:
    ```
 
 > 🛠 Prerequisites: Rust toolchain (`rustc`, `cargo`) and Node.js installed.
+
+## 📄 PDF Printing on Windows
+
+Unlike macOS (which supports native PDF printing via CUPS), **Windows does not natively support raw PDF printing** for most printers.
+This means sending a PDF buffer directly may result in garbage output — unless the printer explicitly supports PDF.
+
+To reliably print PDFs on Windows, consider one of the following **workarounds**:
+
+### Use SumatraPDF (Silent PDF Printing)
+
+One of the most reliable ways to print PDFs on Windows is to use [**SumatraPDF**](https://www.sumatrapdfreader.org/free-pdf-reader.html),
+a lightweight PDF viewer.
+
+You can invoke it from Node.js using `child_process`:
+
+```ts
+import {execFile} from 'child_process';
+
+const sumatraPath = 'C:\\path\\to\\SumatraPDF.exe'; // make sure to use the .exe matching your arch x64, ia32...
+const printerName = 'Your Printer Name';
+const filePath = 'C:\\path\\to\\your.pdf';
+
+execFile(sumatraPath, ['-print-to', printerName, '-silent', filePath], (err) => {
+  if (err) {
+    console.error('Printing failed:', err);
+  } else {
+    console.log('Printed PDF successfully.');
+  }
+});
+```
+
+> ✅ SumatraPDF handles the rendering and sends the job to the printer via the default Windows printing pipeline. Use [
+`pdf-to-printer`](https://github.com/artiebits/pdf-to-printer/blob/master/src/print/print.ts) as a reference if you want to wrap SumatraPDF.
+
+### Alternative: Convert PDF to EMF or PS Before Printing
+
+Another approach is to convert the PDF to a more universally printer-friendly format (like **EMF** or **PostScript**) before sending it to the
+printer:
+
+- Use **Ghostscript** to convert PDF to `.ps`:
+  ```bash
+  gswin64c -dNOPAUSE -dBATCH -sDEVICE=ps2write -sOutputFile=output.ps input.pdf
+  ```
+
+- Then use Node.js to print the `.ps` file using the `print()` function from this package.
 
 ## 🤝 Contributing
 

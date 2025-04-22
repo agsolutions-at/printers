@@ -152,10 +152,11 @@ printer:
 ## Using `electron-builder` to bundle the platform-specific native module
 
 When building an Electron app, you may need native modules that are specifically compiled for your target operating system and architecture (like
-getting the right key to fit the right lock). This script helps make sure the correct .node binaries are downloaded just before packaging the app
-using electron-builder.
+getting the right key to fit the right lock). The following script helps make sure the correct .node binaries are downloaded just before packaging the
+app using electron-builder.
 
-```json file=./package.json
+```json
+// package.json
 {
   ...
   "build": {
@@ -171,7 +172,8 @@ using electron-builder.
 
 Define a `beforePack` hook. Do not include optional dependencies of your build platform.
 
-```typescript file=./beforePack.js
+```typescript
+// beforePack.js
 import path from 'node:path';
 import https from 'node:https';
 import fs from 'node:fs';
@@ -260,9 +262,8 @@ export default beforePack;
 ```
 
 `beforePack.js`: before your app gets packaged, it sneaks in and places the correct native modules on stage based on the OS and architecture you're
-targeting.
-It detects whether you're building for Windows or macOS, figures out the architecture (x64, arm64, etc.), downloads the correct version of native
-.node files from GitHub releases and saves them into the appropriate module folders.
+targeting. It detects whether you're building for Windows or macOS, figures out the architecture (x64, arm64, etc.), downloads the correct version
+of native .node files from GitHub releases and saves them into the appropriate module folders.
 
 ## 🤝 Contributing
 

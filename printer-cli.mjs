@@ -68,9 +68,16 @@ Choose a mode:
       const text = await ask("Enter text to print: ");
       const encoder = new TextEncoder();
       const uint8Array = encoder.encode(text);
+
+      const raw = await ask("RAW content type (y/n)? ");
+      const options = [];
+      if (raw.toLowerCase() === 'y') {
+        options.push({key: "document-format", value: "application/vnd.cups-raw"});
+      }
+
       try {
-        print(selectedPrinter.name, uint8Array, "cli-job-text");
-        console.log("Text print succeeded.");
+        const jobId = print(selectedPrinter.name, uint8Array, "cli-job-text", options);
+        console.log("Text print succeeded. Job ID: " + jobId);
       } catch (e) {
         console.log("Error printing text:", e);
       }
@@ -82,9 +89,16 @@ Choose a mode:
       if (!fs.existsSync(filePath)) {
         console.log("Hint: File does not exist.");
       }
+
+      const raw = await ask("RAW content type (y/n)? ");
+      const options = [];
+      if (raw.toLowerCase() === 'y') {
+        options.push({key: "document-format", value: "application/vnd.cups-raw"});
+      }
+
       try {
-        printFile(selectedPrinter.name, filePath, "cli-job-file");
-        console.log("File print succeeded.");
+        const jobId = printFile(selectedPrinter.name, filePath, "cli-job-file", options);
+        console.log("File print succeeded. Job ID: " + jobId);
       } catch (e) {
         console.log("Error printing file:", e);
       }

@@ -32,7 +32,7 @@ export const enum PrinterJobState {
   UNKNOWN = 'UNKNOWN'
 }
 export interface PrinterJob {
-  id: number
+  id: bigint
   name: string
   state: PrinterJobState
   mediaType: string
@@ -41,10 +41,14 @@ export interface PrinterJob {
   completedAt?: Date
   printerName: string
 }
+export interface PrintOption {
+  key: string
+  value: string
+}
 export declare function getPrinters(): Array<Printer>
 export declare function getPrinterByName(printerName: string): Printer | null
 export declare function getDefaultPrinter(): Printer | null
-export declare function print(printerName: string, buffer: Uint8Array, jobName?: string | undefined | null): void
-export declare function printFile(printerName: string, filePath: string, jobName?: string | undefined | null): void
+export declare function print(printerName: string, buffer: Uint8Array, jobName: string | undefined | null, options: Array<PrintOption>): bigint
+export declare function printFile(printerName: string, filePath: string, jobName: string | undefined | null, options: Array<PrintOption>): bigint
 export declare function getActiveJobs(printerName: string): Array<PrinterJob>
 export declare function getJobHistory(printerName: string): Array<PrinterJob>

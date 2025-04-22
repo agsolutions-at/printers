@@ -1,6 +1,6 @@
 #![deny(clippy::all)]
 
-use napi::{Env, JsDate, JsNumber, Result};
+use napi::{Env, JsBigInt, JsDate, Result};
 use napi_derive::napi;
 use printers::common::base::job::{
   PrinterJob as NativePrinterJob, PrinterJobState as NativePrinterJobState,
@@ -89,7 +89,7 @@ impl From<NativePrinterJobState> for PrinterJobState {
 
 #[napi(object)]
 pub struct PrinterJob {
-  pub id: JsNumber,
+  pub id: JsBigInt,
   pub name: String,
   pub state: PrinterJobState,
   pub media_type: String,
@@ -106,13 +106,12 @@ pub trait FromWithEnv<T> {
 impl FromWithEnv<NativePrinterJob> for PrinterJob {
   fn from_with_env(env: &Env, j: NativePrinterJob) -> Self {
     let id = env
-      .create_int64(j.id as i64)
-      .unwrap_or_else(|_| env.create_int32(-1).unwrap());
-
-    let created_at = safe_date(env, j.created_at).unwrap_or_else(|| env.create_date(0.0).unwrap());
-
-    let processed_at = j.processed_at.and_then(|t| safe_date(env, t));
-    let completed_at = j.completed_at.and_then(|t| safe_date(env, t));
+      .create_bigint_from_u64(j.id)
+      .unwrap_or_else(|_| env.create_bigint_from_u64(0).unwrap());
+    
+    let created_at = safe_date(env, &j.created_at).unwrap_or_else(|| env.create_date(0.0).unwrap());
+    let processed_at = j.processed_at.and_then(|t| safe_date(env, &t));
+    let completed_at = j.completed_at.and_then(|t| safe_date(env, &t));
 
     PrinterJob {
       id,
@@ -125,6 +124,12 @@ impl FromWithEnv<NativePrinterJob> for PrinterJob {
       printer_name: j.printer_name,
     }
   }
+}
+
+#[napi(object)]
+pub struct PrintOption {
+  pub key: String,
+  pub value: String,
 }
 
 #[napi]
@@ -146,27 +151,37 @@ pub fn get_default_printer() -> Option<Printer> {
 }
 
 #[napi]
-pub fn print(printer_name: String, buffer: &[u8], job_name: Option<&str>) -> Result<()> {
+pub fn print(
+  printer_name: String,
+  buffer: &[u8],
+  job_name: Option<&str>,
+  options: Vec<PrintOption>,
+) -> Result<u64> {
   let printer = printers::get_printer_by_name(printer_name.as_str())
     .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
 
-  printer
-    .print(buffer, job_name)
+  let job_id = printer
+    .print(&buffer, job_name, &map_options(&options))
     .map_err(|e| napi::Error::from_reason(format!("Print failed: {}", e)))?;
-
-  Ok(())
+  
+  Ok(job_id)
 }
 
 #[napi]
-pub fn print_file(printer_name: String, file_path: String, job_name: Option<&str>) -> Result<()> {
+pub fn print_file(
+  printer_name: String,
+  file_path: String,
+  job_name: Option<&str>,
+  options: Vec<PrintOption>,
+) -> Result<u64> {
   let printer = printers::get_printer_by_name(printer_name.as_str())
     .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
 
-  printer
-    .print_file(file_path.as_str(), job_name)
+  let job_id = printer
+    .print_file(file_path.as_str(), job_name, &map_options(&options))
     .map_err(|e| napi::Error::from_reason(format!("Print failed: {}", e)))?;
 
-  Ok(())
+  Ok(job_id)
 }
 
 #[napi]
@@ -195,11 +210,18 @@ pub fn get_job_history(env: Env, printer_name: String) -> Vec<PrinterJob> {
     .collect()
 }
 
-fn safe_date(env: &Env, time: SystemTime) -> Option<JsDate> {
+fn safe_date(env: &Env, time: &SystemTime) -> Option<JsDate> {
   let millis = time
     .duration_since(UNIX_EPOCH)
     .ok()? // handles SystemTime before UNIX_EPOCH
     .as_millis() as f64;
 
   env.create_date(millis).ok()
+}
+
+fn map_options(options: &Vec<PrintOption>) -> Vec<(&str, &str)> {
+  options
+    .iter()
+    .map(|opt| (opt.key.as_str(), opt.value.as_str()))
+    .collect()
 }

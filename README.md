@@ -53,7 +53,8 @@ const printers = getPrinters();
 console.log('Available printers:', printers);
 
 const buffer = new TextEncoder().encode('Hello, printers!');
-print(printers[0].name, buffer, 'My Test Job');
+const jobId = print(printers[0].name, buffer, 'My Test Job', []);
+console.log('Printed with print job ID: ', jobId);
 
 const jobs = getActiveJobs(printers[0].name);
 console.log('Active jobs:', jobs);
@@ -147,6 +148,121 @@ printer:
   ```
 
 - Then use Node.js to print the `.ps` file using the `print()` function from this package.
+
+## Using `electron-builder` to bundle the platform-specific native module
+
+When building an Electron app, you may need native modules that are specifically compiled for your target operating system and architecture (like
+getting the right key to fit the right lock). This script helps make sure the correct .node binaries are downloaded just before packaging the app
+using electron-builder.
+
+```json file=./package.json
+{
+  ...
+  "build": {
+    "beforePack": "./beforePack.js",
+    "files": [
+      ...
+      "!**/node_modules/@agsolutions-at/printers-*/**"
+    ]
+  },
+  ...
+}
+```
+
+Define a `beforePack` hook. Do not include optional dependencies of your build platform.
+
+```typescript file=./beforePack.js
+import path from 'node:path';
+import https from 'node:https';
+import fs from 'node:fs';
+import printersPackage from './app/node_modules/@agsolutions-at/printers/package.json' with {type: 'json'};
+import {fileURLToPath} from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const downloadFile = (url, dest, cb) => {
+  https
+  .get(url, res => {
+    // If redirect
+    if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+      return downloadFile(res.headers.location, dest, cb); // follow redirect
+    }
+
+    const fileStream = fs.createWriteStream(dest);
+    res.pipe(fileStream);
+
+    fileStream.on('finish', () => {
+      fileStream.close(cb); // call callback on finish
+    });
+
+    res.on('error', err => {
+      fs.unlink(dest, () => {
+      });
+      cb(err.message);
+    });
+  })
+  .on('error', err => {
+    cb(err.message);
+  });
+};
+
+const beforePack = context => {
+  const {electronPlatformName, arch} = context;
+
+  let archName;
+  switch (arch) {
+    case 0:
+      archName = 'ia32';
+      break;
+    case 1:
+      archName = 'x64';
+      break;
+    case 2:
+      archName = 'armv7l';
+      break;
+    case 3:
+      archName = 'arm64';
+      break;
+    case 4:
+      archName = 'universal';
+      break;
+    default:
+      throw Error('Unknown arch');
+  }
+
+  let downloadUrl;
+  if (electronPlatformName === 'win32') {
+    downloadUrl = `https://github.com/agsolutions-at/printers/releases/download/v${printersPackage.version}/printers.win32-${archName}-msvc.node`;
+  } else {
+    // changes this dependening on your needs, in this case we bundle an unversal module.
+    downloadUrl = `https://github.com/agsolutions-at/printers/releases/download/v${printersPackage.version}/printers.darwin-universal.node`;
+  }
+  const nativeModulePath = path.join(
+      __dirname,
+      'app',
+      'node_modules',
+      '@agsolutions-at',
+      'printers',
+      electronPlatformName === 'win32' ? `printers.win32-${archName}-msvc.node` : `printers.darwin-universal.node`
+  );
+  downloadFile(downloadUrl, nativeModulePath, err => {
+    if (err) {
+      console.error('Download error:', err);
+      process.exit(1);
+    } else {
+      console.log('Download printers completed');
+    }
+  });
+};
+
+export default beforePack;
+```
+
+`beforePack.js`: before your app gets packaged, it sneaks in and places the correct native modules on stage based on the OS and architecture you're
+targeting.
+It detects whether you're building for Windows or macOS, figures out the architecture (x64, arm64, etc.), downloads the correct version of native
+.node files from GitHub releases and saves them into the appropriate module folders.
 
 ## 🤝 Contributing
 

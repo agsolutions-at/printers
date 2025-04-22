@@ -16,7 +16,7 @@ test('print - throws when the printer name is unknown', (t) => {
   const text = "print content";
   const encoder = new TextEncoder();
   const uint8Array = encoder.encode(text);
-  const error = t.throws(() => print("some unknown printer name", uint8Array))
+  const error = t.throws(() => print("some unknown printer name", uint8Array, null, []))
   t.is(error.message, "Printer not found")
 });
 
@@ -26,6 +26,6 @@ test('printFile - throws when the arguments do not match', (t) => {
 });
 
 test('printFile - throws when the printer name is unknown', (t) => {
-  const error = t.throws(() => printFile("some unknown printer name", "some file path"))
+  const error = t.throws(() => printFile("some unknown printer name", "some file path", null, []))
   t.is(error.message, "Printer not found")
 });

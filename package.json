@@ -1,6 +1,6 @@
 {
   "name": "@agsolutions-at/printers",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "index.js",
   "types": "index.d.ts",
   "author": "agsolutions GmbH",
@@ -9,6 +9,7 @@
     "url": "https://github.com/agsolutions-at/printers"
   },
   "keywords": [
+    "electron",
     "nodejs",
     "napi-rs",
     "rust"

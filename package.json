@@ -1,6 +1,6 @@
 {
   "name": "@agsolutions-at/printers",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "index.js",
   "types": "index.d.ts",
   "author": "agsolutions GmbH",

@@ -8,7 +8,7 @@
 [![CI](https://github.com/agsolutions-at/printers/actions/workflows/CI.yml/badge.svg)](https://github.com/agsolutions-at/printers/actions/workflows/CI.yml)
 
 **`printers`** is a high-performance, Rust-powered replacement for outdated native printer libraries in Node.js. Built on top of [
-`rust-printers`](https://github.com/talesluna/rust-printers), it provides seamless bindings via [`napi-rs`](https://napi.rs/), supporting fast and
+`rust-printers`](https://github.com/agsolutions-at/rust-printers), it provides seamless bindings via [`napi-rs`](https://napi.rs/), supporting fast and
 reliable printer interactions in Node.js and Electron applications.
 
 > ✅ Prebuilt native binaries included — no need to build from source for most users.
@@ -20,7 +20,7 @@ reliable printer interactions in Node.js and Electron applications.
 - 🧩 **Electron-friendly** — includes prebuilt binaries, plug-and-play.
 - 🖥️ **Cross-platform aware** — currently supports **macOS** and **Windows**.
 - 💡 **Easy-to-use API** for interacting with system printers.
-- 📄 **Native PDF support on macOS** — uses CUPS with native PDF handling on UNIX systems; see [PDF Printing on Windows](#pdf-printing-on-windows).
+- 📄 **Native PDF support on macOS** — uses CUPS with native PDF handling on UNIX systems; see [PDF Printing on Windows](#-pdf-printing-on-windows).
 - 🧾 **Label printer compatible** — works with devices like Rollo and Zebra.
 
 > ℹ️ Want Linux support? PRs are welcome!

@@ -16,6 +16,7 @@ pub enum PrinterState {
   PAUSED,
   PRINTING,
   UNKNOWN,
+  OFFLINE
 }
 
 impl From<NativePrinterState> for PrinterState {
@@ -25,6 +26,7 @@ impl From<NativePrinterState> for PrinterState {
       NativePrinterState::PAUSED => PrinterState::PAUSED,
       NativePrinterState::PRINTING => PrinterState::PRINTING,
       NativePrinterState::UNKNOWN => PrinterState::UNKNOWN,
+      NativePrinterState::OFFLINE => PrinterState::OFFLINE,
     }
   }
 }
@@ -43,6 +45,7 @@ pub struct Printer {
   pub is_default: bool,
   pub is_shared: bool,
   pub state: PrinterState,
+  pub state_reasons: Vec<String>,
 }
 
 impl From<NativePrinter> for Printer {
@@ -60,6 +63,7 @@ impl From<NativePrinter> for Printer {
       is_default: p.is_default,
       is_shared: p.is_shared,
       state: PrinterState::from(p.state),
+      state_reasons: p.state_reasons,
     }
   }
 }

@@ -7,7 +7,8 @@ export const enum PrinterState {
   READY = 'READY',
   PAUSED = 'PAUSED',
   PRINTING = 'PRINTING',
-  UNKNOWN = 'UNKNOWN'
+  UNKNOWN = 'UNKNOWN',
+  OFFLINE = 'OFFLINE'
 }
 export interface Printer {
   name: string
@@ -22,6 +23,7 @@ export interface Printer {
   isDefault: boolean
   isShared: boolean
   state: PrinterState
+  stateReasons: Array<string>
 }
 export const enum PrinterJobState {
   PENDING = 'PENDING',

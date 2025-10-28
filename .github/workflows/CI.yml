@@ -51,7 +51,7 @@ jobs:
         uses: actions/setup-node@v4
         if: ${{ !matrix.settings.docker }}
         with:
-          node-version: 20
+          node-version: 24
           # cache: yarn
       - name: Enable Corepack
         if: ${{ !matrix.settings.docker }}
@@ -90,7 +90,7 @@ jobs:
         uses: actions/setup-node@v4
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
-          node-version: 20
+          node-version: 24
           # cache: yarn
           architecture: x86
       - name: Enable Corepack
@@ -161,7 +161,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           # cache: yarn
       - name: Enable Corepack
         run: corepack enable
@@ -196,7 +196,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           # cache: yarn
       - name: Enable Corepack
         run: corepack enable

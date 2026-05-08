@@ -11,8 +11,7 @@
   "author": "agsolutions GmbH",
   "license": "MIT",
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/agsolutions-at/printers.git"
+    "url": "https://github.com/agsolutions-at/printers"
   },
   "keywords": [
     "electron",

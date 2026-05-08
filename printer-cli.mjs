@@ -1,127 +1,195 @@
+#!/usr/bin/env node
+import { confirm, input, select } from '@inquirer/prompts';
+import fs from 'node:fs';
+import { TextEncoder } from 'node:util';
+
 import {
+  cancelJob,
   getActiveJobs,
   getDefaultPrinter,
   getJobHistory,
   getPrinterByName,
   getPrinters,
+  pauseJob,
   print,
-  printFile
-} from './index.js'
+  printFile,
+  restartJob,
+  resumeJob,
+} from './index.js';
 
-import readline from 'readline';
-import {TextEncoder} from 'util';
-import fs from 'fs';
+const STATE_GLYPH = {
+  READY: '🟢',
+  PRINTING: '🖨️ ',
+  PAUSED: '⏸️ ',
+  OFFLINE: '⚫',
+  UNKNOWN: '❔',
+};
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+const RAW_OPTION = { key: 'document-format', value: 'application/vnd.cups-raw' };
 
-function ask(question) {
-  return new Promise(resolve => rl.question(question, resolve));
+function pretty(obj) {
+  return JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
+}
+
+function jobsTable(jobs) {
+  if (jobs.length === 0) {
+    console.log('  (none)');
+    return;
+  }
+  console.table(
+    jobs.map((j) => ({
+      id: j.id.toString(),
+      name: j.name,
+      state: j.state,
+      mediaType: j.mediaType,
+      createdAt: j.createdAt?.toISOString(),
+      processedAt: j.processedAt?.toISOString() ?? '',
+      completedAt: j.completedAt?.toISOString() ?? '',
+    })),
+  );
+}
+
+async function pickPrinter() {
+  const printers = getPrinters();
+  if (printers.length === 0) {
+    console.log('No printers found on this system.');
+    return null;
+  }
+
+  const def = getDefaultPrinter();
+
+  return select({
+    message: 'Select printer',
+    default: def?.name,
+    pageSize: 15,
+    choices: printers.map((p) => ({
+      name: `${STATE_GLYPH[p.state] ?? '·'} ${p.name}${def?.name === p.name ? '  (default)' : ''}`,
+      value: p.name,
+      description: [p.driverName, p.location].filter(Boolean).join(' — '),
+    })),
+  });
+}
+
+async function actionPrintText(printerName) {
+  const text = await input({ message: 'Text to print', validate: (v) => v.length > 0 || 'cannot be empty' });
+  const raw = await confirm({ message: 'Send as RAW (CUPS-raw)?', default: false });
+  const buffer = new TextEncoder().encode(text);
+  const jobId = print(printerName, buffer, 'cli-text', raw ? [RAW_OPTION] : []);
+  console.log(`✓ Submitted text job — ID ${jobId.toString()}`);
+}
+
+async function actionPrintFile(printerName) {
+  const filePath = await input({
+    message: 'Path to file',
+    validate: (v) => fs.existsSync(v) || 'file does not exist',
+  });
+  const raw = await confirm({ message: 'Send as RAW (CUPS-raw)?', default: false });
+  const jobId = printFile(printerName, filePath, 'cli-file', raw ? [RAW_OPTION] : []);
+  console.log(`✓ Submitted file job — ID ${jobId.toString()}`);
+}
+
+function actionActiveJobs(printerName) {
+  console.log(`\nActive jobs on ${printerName}:`);
+  jobsTable(getActiveJobs(printerName));
+}
+
+function actionJobHistory(printerName) {
+  console.log(`\nJob history for ${printerName}:`);
+  jobsTable(getJobHistory(printerName));
+}
+
+function actionPrinterDetails(printerName) {
+  const p = getPrinterByName(printerName);
+  if (!p) {
+    console.log('Printer not found.');
+    return;
+  }
+  console.log('\n' + pretty(p));
+}
+
+async function actionManageJob(printerName) {
+  const jobs = getActiveJobs(printerName);
+  if (jobs.length === 0) {
+    console.log('  (no active jobs)');
+    return;
+  }
+  const jobId = await select({
+    message: 'Pick job',
+    choices: jobs.map((j) => ({
+      name: `${j.id.toString()} — ${j.name} [${j.state}]`,
+      value: j.id,
+    })),
+  });
+  const action = await select({
+    message: 'Action',
+    choices: [
+      { name: 'Pause', value: 'pause' },
+      { name: 'Resume', value: 'resume' },
+      { name: 'Restart', value: 'restart' },
+      { name: 'Cancel', value: 'cancel' },
+    ],
+  });
+  switch (action) {
+    case 'pause': pauseJob(printerName, jobId); break;
+    case 'resume': resumeJob(printerName, jobId); break;
+    case 'restart': restartJob(printerName, jobId); break;
+    case 'cancel': cancelJob(printerName, jobId); break;
+  }
+  console.log(`✓ ${action} on job ${jobId.toString()}`);
+}
+
+async function actionMenu(printerName) {
+  while (true) {
+    const action = await select({
+      message: `[${printerName}] What now?`,
+      pageSize: 10,
+      choices: [
+        { name: 'Print text', value: 'text' },
+        { name: 'Print file', value: 'file' },
+        { name: 'View active jobs', value: 'active' },
+        { name: 'View job history', value: 'history' },
+        { name: 'Manage active job (pause/resume/restart/cancel)', value: 'manage' },
+        { name: 'Show printer details', value: 'details' },
+        { name: 'Switch printer', value: 'switch' },
+        { name: 'Quit', value: 'quit' },
+      ],
+    });
+
+    if (action === 'switch') return 'switch';
+    if (action === 'quit') return 'quit';
+
+    try {
+      switch (action) {
+        case 'text': await actionPrintText(printerName); break;
+        case 'file': await actionPrintFile(printerName); break;
+        case 'active': actionActiveJobs(printerName); break;
+        case 'history': actionJobHistory(printerName); break;
+        case 'manage': await actionManageJob(printerName); break;
+        case 'details': actionPrinterDetails(printerName); break;
+      }
+    } catch (e) {
+      console.error(`✗ ${e?.message ?? e}`);
+    }
+    console.log('');
+  }
 }
 
 async function main() {
-  console.log("Welcome to the printer CLI!\n");
-  const printers = getPrinters();
-
-  if (!printers || printers.length === 0) {
-    console.log("No printers found.");
-    rl.close();
-    return;
+  console.log('🖨️  Printer CLI\n');
+  while (true) {
+    const printerName = await pickPrinter();
+    if (!printerName) return;
+    const result = await actionMenu(printerName);
+    if (result === 'quit') {
+      console.log('Bye.');
+      return;
+    }
   }
-
-  console.log(`Default printer: ${getDefaultPrinter().name}\n`);
-
-  console.log("Available Printers:");
-  printers.forEach((printer, index) => {
-    console.log(`=> ${index + 1}:`)
-    console.log(printer);
-  });
-
-  let choice = await ask("\nSelect a printer by number: ");
-  let index = parseInt(choice) - 1;
-
-  if (isNaN(index) || index < 0 || index >= printers.length) {
-    console.log("Invalid selection.");
-    rl.close();
-    return;
-  }
-
-  const selectedPrinter = printers[index];
-  console.log(
-      `Selected printer: ${selectedPrinter.name} (should match result of getPrinterByName: ${getPrinterByName(
-          selectedPrinter.name).name})`);
-
-  console.log(`
-Choose a mode:
-1. Print text
-2. Print file
-3. View active jobs
-4. View job history
-  `);
-
-  const mode = await ask("Enter mode number: ");
-
-  switch (mode) {
-    case '1': {
-      const text = await ask("Enter text to print: ");
-      const encoder = new TextEncoder();
-      const uint8Array = encoder.encode(text);
-
-      const raw = await ask("RAW content type (y/n)? ");
-      const options = [];
-      if (raw.toLowerCase() === 'y') {
-        options.push({key: "document-format", value: "application/vnd.cups-raw"});
-      }
-
-      try {
-        const jobId = print(selectedPrinter.name, uint8Array, "cli-job-text", options);
-        console.log("Text print succeeded. Job ID: " + jobId);
-      } catch (e) {
-        console.log("Error printing text:", e);
-      }
-      break;
-    }
-
-    case '2': {
-      const filePath = await ask("Enter full path to file: ");
-      if (!fs.existsSync(filePath)) {
-        console.log("Hint: File does not exist.");
-      }
-
-      const raw = await ask("RAW content type (y/n)? ");
-      const options = [];
-      if (raw.toLowerCase() === 'y') {
-        options.push({key: "document-format", value: "application/vnd.cups-raw"});
-      }
-
-      try {
-        const jobId = printFile(selectedPrinter.name, filePath, "cli-job-file", options);
-        console.log("File print succeeded. Job ID: " + jobId);
-      } catch (e) {
-        console.log("Error printing file:", e);
-      }
-      break;
-    }
-
-    case '3': {
-      const jobs = getActiveJobs(selectedPrinter.name);
-      console.log("Active Jobs:\n", jobs);
-      break;
-    }
-
-    case '4': {
-      const history = getJobHistory(selectedPrinter.name);
-      console.log("Job History:\n", history);
-      break;
-    }
-
-    default:
-      console.log("Invalid mode selected.");
-  }
-
-  rl.close();
 }
 
-main();
+main().catch((e) => {
+  // Ctrl-C / Esc on a prompt throws ExitPromptError — treat as clean exit.
+  if (e?.name === 'ExitPromptError') return;
+  console.error(e);
+  process.exit(1);
+});

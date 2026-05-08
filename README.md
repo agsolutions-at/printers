@@ -64,21 +64,23 @@ console.log('Active jobs:', jobs);
 
 ## 🧪 CLI Testing
 
-This repo includes a command-line utility: [`printer-cli.mjs`](./printer-cli.mjs), which makes it easy to test the API from the terminal.
+This repo includes a command-line utility: [`printer-cli.mjs`](./printer-cli.mjs), which makes it easy to test the API from the terminal. It's dev-only — not shipped to npm consumers.
 
 ### 🏃 Run the CLI:
 
 ```bash
+yarn install   # first time only
 node printer-cli.mjs
 ```
 
 ### 💡 Features:
 
-- List available printers
-- Select and print text
-- Print a file
-- View active jobs
-- View job history
+- Interactive menu with arrow-key navigation
+- Auto-selects your system default printer
+- Print text or file (with optional CUPS-raw mode)
+- View active jobs / job history (formatted as tables)
+- Inspect full printer details
+- Switch printer or quit at any time
 
 > Perfect for debugging or quick testing without writing your own app.
 
@@ -102,7 +104,7 @@ If you prefer to build locally:
    yarn build
    ```
 
-> 🛠 Prerequisites: Rust toolchain (`rustc`, `cargo`) and Node.js installed.
+> 🛠 Prerequisites: Rust toolchain (`rustc`, `cargo`) and Node.js installed. Or just run [`mise install`](https://mise.jdx.dev/) — the repo ships a `mise.toml` that pins both versions.
 
 ## 📄 PDF Printing on Windows
 

@@ -126,6 +126,13 @@ jobs:
         node:
           - '22'
           - '24'
+        exclude:
+          # Node 24 dropped 32-bit Windows binaries — only test i686 on Node 22.
+          - settings:
+              host: windows-latest
+              target: i686-pc-windows-msvc
+              architecture: x86
+            node: '24'
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v6
@@ -167,12 +174,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: bindings-x86_64-apple-darwin
-          path: artifacts
+          path: .
       - name: Download macOS arm64 artifact
         uses: actions/download-artifact@v8
         with:
           name: bindings-aarch64-apple-darwin
-          path: artifacts
+          path: .
       - name: Combine binaries
         run: yarn universal
       - name: Upload artifact

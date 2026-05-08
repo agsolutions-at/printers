@@ -5,11 +5,12 @@ use napi::bindgen_prelude::BigInt;
 use napi::Result;
 use napi_derive::napi;
 use printers::common::base::job::{
-  PrinterJob as NativePrinterJob, PrinterJobState as NativePrinterJobState,
+  PrinterJob as NativePrinterJob, PrinterJobOptions, PrinterJobState as NativePrinterJobState,
 };
 use printers::common::base::printer::{
   Printer as NativePrinter, PrinterState as NativePrinterState,
 };
+use printers::common::converters::{Converter, GhostscriptConverterOptions};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[napi(string_enum)]
@@ -127,6 +128,54 @@ pub struct PrintOption {
   pub value: String,
 }
 
+/// Ghostscript output device for the optional pre-print converter.
+/// Each variant maps to a `-sDEVICE=<name>` flag passed to the
+/// `gs` / `gswin64c.exe` binary, which must be on PATH.
+#[napi(string_enum)]
+pub enum GhostscriptDevice {
+  /// PostScript level 2/3 — typical choice for PDF→PS before sending to a printer.
+  PS2WRITE,
+  /// 24-bit RGB PNG raster.
+  PNG16M,
+  /// TIFF group 4 (1-bit fax-style).
+  TIFFG4,
+  /// 1-bit monochrome PNG.
+  PNGMONO,
+}
+
+#[napi(object)]
+pub struct GhostscriptConfig {
+  pub device: GhostscriptDevice,
+  pub dpi: Option<u32>,
+}
+
+fn build_converter(cfg: Option<&GhostscriptConfig>) -> Converter {
+  let Some(cfg) = cfg else {
+    return Converter::None;
+  };
+  let device: &'static str = match cfg.device {
+    GhostscriptDevice::PS2WRITE => "ps2write",
+    GhostscriptDevice::PNG16M => "png16m",
+    GhostscriptDevice::TIFFG4 => "tiffg4",
+    GhostscriptDevice::PNGMONO => "pngmono",
+  };
+  Converter::Ghostscript(GhostscriptConverterOptions {
+    device: Some(device),
+    dpi: cfg.dpi,
+    command: None,
+  })
+}
+
+fn bigint_to_u64(b: BigInt) -> Result<u64> {
+  let (signed, value, lossless) = b.get_u64();
+  if signed || !lossless {
+    return Err(napi::Error::from_reason(
+      "Job ID out of range for u64".to_string(),
+    ));
+  }
+  Ok(value)
+}
+
 #[napi]
 pub fn get_printers() -> Vec<Printer> {
   printers::get_printers()
@@ -151,13 +200,21 @@ pub fn print(
   buffer: &[u8],
   job_name: Option<String>,
   options: Vec<PrintOption>,
+  ghostscript: Option<GhostscriptConfig>,
 ) -> Result<u64> {
   let printer = printers::get_printer_by_name(printer_name.as_str())
     .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
 
+  let raw_props = map_options(&options);
+  let job_options = PrinterJobOptions {
+    name: job_name.as_deref(),
+    raw_properties: &raw_props,
+    converter: build_converter(ghostscript.as_ref()),
+  };
+
   let job_id = printer
-    .print(buffer, job_name.as_deref(), &map_options(&options))
-    .map_err(|e| napi::Error::from_reason(format!("Print failed: {}", e)))?;
+    .print(buffer, job_options)
+    .map_err(|e| napi::Error::from_reason(format!("Print failed: {}", e.message)))?;
 
   Ok(job_id)
 }
@@ -168,17 +225,21 @@ pub fn print_file(
   file_path: String,
   job_name: Option<String>,
   options: Vec<PrintOption>,
+  ghostscript: Option<GhostscriptConfig>,
 ) -> Result<u64> {
   let printer = printers::get_printer_by_name(printer_name.as_str())
     .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
 
+  let raw_props = map_options(&options);
+  let job_options = PrinterJobOptions {
+    name: job_name.as_deref(),
+    raw_properties: &raw_props,
+    converter: build_converter(ghostscript.as_ref()),
+  };
+
   let job_id = printer
-    .print_file(
-      file_path.as_str(),
-      job_name.as_deref(),
-      &map_options(&options),
-    )
-    .map_err(|e| napi::Error::from_reason(format!("Print failed: {}", e)))?;
+    .print_file(file_path.as_str(), job_options)
+    .map_err(|e| napi::Error::from_reason(format!("Print failed: {}", e.message)))?;
 
   Ok(job_id)
 }
@@ -207,6 +268,46 @@ pub fn get_job_history(printer_name: String) -> Vec<PrinterJob> {
     .into_iter()
     .map(PrinterJob::from)
     .collect()
+}
+
+#[napi]
+pub fn pause_job(printer_name: String, job_id: BigInt) -> Result<()> {
+  let printer = printers::get_printer_by_name(printer_name.as_str())
+    .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
+  let id = bigint_to_u64(job_id)?;
+  printer
+    .pause_job(id)
+    .map_err(|e| napi::Error::from_reason(format!("Pause job failed: {}", e.message)))
+}
+
+#[napi]
+pub fn resume_job(printer_name: String, job_id: BigInt) -> Result<()> {
+  let printer = printers::get_printer_by_name(printer_name.as_str())
+    .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
+  let id = bigint_to_u64(job_id)?;
+  printer
+    .resume_job(id)
+    .map_err(|e| napi::Error::from_reason(format!("Resume job failed: {}", e.message)))
+}
+
+#[napi]
+pub fn cancel_job(printer_name: String, job_id: BigInt) -> Result<()> {
+  let printer = printers::get_printer_by_name(printer_name.as_str())
+    .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
+  let id = bigint_to_u64(job_id)?;
+  printer
+    .cancel_job(id)
+    .map_err(|e| napi::Error::from_reason(format!("Cancel job failed: {}", e.message)))
+}
+
+#[napi]
+pub fn restart_job(printer_name: String, job_id: BigInt) -> Result<()> {
+  let printer = printers::get_printer_by_name(printer_name.as_str())
+    .ok_or_else(|| napi::Error::from_reason("Printer not found".to_string()))?;
+  let id = bigint_to_u64(job_id)?;
+  printer
+    .restart_job(id)
+    .map_err(|e| napi::Error::from_reason(format!("Restart job failed: {}", e.message)))
 }
 
 fn safe_date(time: &SystemTime) -> Option<DateTime<Utc>> {

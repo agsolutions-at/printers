@@ -4,6 +4,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "files": [
+    "CHANGELOG.md",
     "index.d.ts",
     "index.js"
   ],
@@ -48,7 +49,7 @@
     "artifacts": "napi artifacts",
     "build": "napi build --platform --release",
     "build:debug": "napi build --platform",
-    "prepublishOnly": "napi pre-publish",
+    "prepublishOnly": "napi pre-publish --gh-release",
     "test": "ava",
     "universal": "napi universalize",
     "version": "napi version"

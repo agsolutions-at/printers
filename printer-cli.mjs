@@ -4,13 +4,17 @@ import fs from 'node:fs';
 import { TextEncoder } from 'node:util';
 
 import {
+  cancelJob,
   getActiveJobs,
   getDefaultPrinter,
   getJobHistory,
   getPrinterByName,
   getPrinters,
+  pauseJob,
   print,
   printFile,
+  restartJob,
+  resumeJob,
 } from './index.js';
 
 const STATE_GLYPH = {
@@ -103,6 +107,37 @@ function actionPrinterDetails(printerName) {
   console.log('\n' + pretty(p));
 }
 
+async function actionManageJob(printerName) {
+  const jobs = getActiveJobs(printerName);
+  if (jobs.length === 0) {
+    console.log('  (no active jobs)');
+    return;
+  }
+  const jobId = await select({
+    message: 'Pick job',
+    choices: jobs.map((j) => ({
+      name: `${j.id.toString()} — ${j.name} [${j.state}]`,
+      value: j.id,
+    })),
+  });
+  const action = await select({
+    message: 'Action',
+    choices: [
+      { name: 'Pause', value: 'pause' },
+      { name: 'Resume', value: 'resume' },
+      { name: 'Restart', value: 'restart' },
+      { name: 'Cancel', value: 'cancel' },
+    ],
+  });
+  switch (action) {
+    case 'pause': pauseJob(printerName, jobId); break;
+    case 'resume': resumeJob(printerName, jobId); break;
+    case 'restart': restartJob(printerName, jobId); break;
+    case 'cancel': cancelJob(printerName, jobId); break;
+  }
+  console.log(`✓ ${action} on job ${jobId.toString()}`);
+}
+
 async function actionMenu(printerName) {
   while (true) {
     const action = await select({
@@ -113,6 +148,7 @@ async function actionMenu(printerName) {
         { name: 'Print file', value: 'file' },
         { name: 'View active jobs', value: 'active' },
         { name: 'View job history', value: 'history' },
+        { name: 'Manage active job (pause/resume/restart/cancel)', value: 'manage' },
         { name: 'Show printer details', value: 'details' },
         { name: 'Switch printer', value: 'switch' },
         { name: 'Quit', value: 'quit' },
@@ -128,6 +164,7 @@ async function actionMenu(printerName) {
         case 'file': await actionPrintFile(printerName); break;
         case 'active': actionActiveJobs(printerName); break;
         case 'history': actionJobHistory(printerName); break;
+        case 'manage': await actionManageJob(printerName); break;
         case 'details': actionPrinterDetails(printerName); break;
       }
     } catch (e) {

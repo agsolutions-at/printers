@@ -215,17 +215,26 @@ jobs:
       - name: Publish
         run: |
           npm config set provenance true
+          VERSION=$(node -p "require('./package.json').version")
+          # `prepublishOnly` (= napi pre-publish --gh-release) creates the
+          # GitHub release and uploads platform .node binaries as assets,
+          # but with an empty body — we set it from CHANGELOG.md afterwards.
           if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$";
           then
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
             npm publish --access public
+            awk -v ver="$VERSION" '/^## \[/{if(found)exit; if($0 ~ "\\["ver"\\]"){found=1; next}} found' CHANGELOG.md > release-notes.md
+            gh release edit "v$VERSION" --notes-file release-notes.md
           elif git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+";
           then
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
             npm publish --tag next --access public
+            awk -v ver="$VERSION" '/^## \[/{if(found)exit; if($0 ~ "\\["ver"\\]"){found=1; next}} found' CHANGELOG.md > release-notes.md
+            gh release edit "v$VERSION" --notes-file release-notes.md --prerelease
           else
             echo "Not a release, skipping publish"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

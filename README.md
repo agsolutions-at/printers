@@ -62,6 +62,39 @@ console.log('Active jobs:', jobs);
 
 > 🔍 All bindings mirror the native Rust API. Check [index.d.ts](./index.d.ts) for full typings and usage.
 
+### Job Control
+
+After submitting a job you can control it by ID:
+
+```ts
+import {pauseJob, resumeJob, cancelJob, restartJob} from '@agsolutions-at/printers';
+
+const jobId = print(printer.name, buffer, 'job', []);
+pauseJob(printer.name, jobId);
+resumeJob(printer.name, jobId);
+restartJob(printer.name, jobId);
+cancelJob(printer.name, jobId);
+```
+
+All four throw on failure (e.g. job already finished, printer not found).
+
+### Ghostscript Pre-Processing (PDF → PostScript on Windows)
+
+`print` and `printFile` accept an optional Ghostscript config that pre-converts the buffer/file before sending it to the printer. Useful for [PDF printing on Windows](#-pdf-printing-on-windows) — Ghostscript renders the PDF to PostScript (`ps2write`) which most printers handle natively.
+
+Requires `gs` (Unix) or `gswin64c.exe` (Windows) on `PATH`.
+
+```ts
+import {printFile, GhostscriptDevice} from '@agsolutions-at/printers';
+
+printFile(printer.name, '/path/to/file.pdf', 'pdf-job', [], {
+  device: GhostscriptDevice.PS2WRITE,
+  dpi: 300,        // optional, defaults to 500
+});
+```
+
+Available devices: `PS2WRITE` (PostScript), `PNG16M` (24-bit color), `TIFFG4` (1-bit fax), `PNGMONO` (1-bit mono).
+
 ## 🧪 CLI Testing
 
 This repo includes a command-line utility: [`printer-cli.mjs`](./printer-cli.mjs), which makes it easy to test the API from the terminal. It's dev-only — not shipped to npm consumers.
@@ -79,6 +112,7 @@ node printer-cli.mjs
 - Auto-selects your system default printer
 - Print text or file (with optional CUPS-raw mode)
 - View active jobs / job history (formatted as tables)
+- Manage a job (pause / resume / restart / cancel)
 - Inspect full printer details
 - Switch printer or quit at any time
 

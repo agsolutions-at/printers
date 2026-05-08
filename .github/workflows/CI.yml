@@ -31,7 +31,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: yarn
+      - name: Enable Corepack
+        run: corepack enable
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -70,7 +71,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: yarn
+      - name: Enable Corepack
+        run: corepack enable
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -131,8 +133,9 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: yarn
           architecture: ${{ matrix.settings.architecture }}
+      - name: Enable Corepack
+        run: corepack enable
       - name: Install dependencies
         run: yarn install
       - name: Download artifacts
@@ -156,7 +159,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: yarn
+      - name: Enable Corepack
+        run: corepack enable
       - name: Install dependencies
         run: yarn install
       - name: Download macOS x64 artifact
@@ -193,7 +197,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: yarn
+      - name: Enable Corepack
+        run: corepack enable
       - name: Install dependencies
         run: yarn install
       - name: Create npm dirs

@@ -8,7 +8,7 @@
 [![CI](https://github.com/agsolutions-at/printers/actions/workflows/CI.yml/badge.svg)](https://github.com/agsolutions-at/printers/actions/workflows/CI.yml)
 
 **`printers`** is a high-performance, Rust-powered replacement for outdated native printer libraries in Node.js. Built on top of [
-`rust-printers`](https://github.com/agsolutions-at/rust-printers), it provides seamless bindings via [`napi-rs`](https://napi.rs/), supporting fast and
+`rust-printers`](https://github.com/talesluna/rust-printers), it provides seamless bindings via [`napi-rs`](https://napi.rs/), supporting fast and
 reliable printer interactions in Node.js and Electron applications.
 
 > ✅ Prebuilt native binaries included — no need to build from source for most users.

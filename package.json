@@ -49,7 +49,7 @@
     "artifacts": "napi artifacts",
     "build": "napi build --platform --release",
     "build:debug": "napi build --platform",
-    "prepublishOnly": "napi pre-publish --gh-release",
+    "prepublishOnly": "napi pre-publish --gh-release -t npm",
     "test": "ava",
     "universal": "napi universalize",
     "version": "napi version"
